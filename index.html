@@ -18,6 +18,10 @@
         .table-container::-webkit-scrollbar { height: 8px; }
         .table-container::-webkit-scrollbar-track { background: #f1f5f9; }
         .table-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        
+        /* 변동률 애니메이션 및 스타일 */
+        .mom-up { color: #ef4444; font-size: 0.875rem; font-weight: 600; }
+        .mom-down { color: #3b82f6; font-size: 0.875rem; font-weight: 600; }
     </style>
 </head>
 <body class="text-slate-800">
@@ -26,11 +30,11 @@
         <!-- 대시보드 헤더 -->
         <header class="flex flex-col md:flex-row md:items-center justify-between mb-10 gap-6">
             <div>
-                <h1 class="text-4xl font-extrabold text-slate-900 tracking-tight">우리 동네 아파트 실거래가 대시보드</h1>
-                <p class="text-slate-500 mt-2 text-lg">지정된 시트(GID: 945303917)의 실시간 데이터를 제공합니다.</p>
+                <h1 class="text-3xl md:text-4xl font-extrabold text-slate-900 tracking-tight">우리 동네 아파트 실거래가 대시보드</h1>
+                <p class="text-slate-500 mt-2 text-base md:text-lg">실시간 데이터를 기반으로 전월 대비 변동 추이를 분석합니다.</p>
             </div>
-            <div id="status-container">
-                <span id="status-badge" class="px-4 py-2 rounded-full text-sm font-semibold bg-blue-50 text-blue-600 border border-blue-100 animate-pulse">
+            <div id="status-container" class="flex items-center">
+                <span id="status-badge" class="px-4 py-2 rounded-full text-xs md:text-sm font-semibold bg-blue-50 text-blue-600 border border-blue-100 animate-pulse whitespace-nowrap">
                     데이터 소스 연결 중...
                 </span>
             </div>
@@ -42,68 +46,82 @@
                 <svg class="w-6 h-6 mr-2 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>
                 <h3 class="font-bold text-lg">데이터 분석 실패</h3>
             </div>
-            <p id="error-message" class="text-sm opacity-90 leading-relaxed mb-4"></p>
-            <div id="debug-info" class="text-xs bg-white/60 p-4 rounded-xl border border-rose-100 hidden">
-                <p class="font-bold mb-1 underline">시스템 디버깅 정보:</p>
-                <div id="detected-headers" class="mb-1 italic">감지된 헤더: 없음</div>
-            </div>
+            <p id="error-message" class="text-sm opacity-90 leading-relaxed"></p>
         </div>
 
-        <!-- 요약 통계 카드 -->
+        <!-- 요약 통계 카드 (반응형: 1열 -> 2열 -> 4열) -->
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div class="stat-card border-l-4 border-l-blue-500">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">전체 거래 건수</p>
-                <p id="total-count" class="text-3xl font-black text-slate-900">-</p>
-            </div>
-            <div class="stat-card border-l-4 border-l-emerald-500">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">평균 거래가격</p>
-                <div class="flex items-baseline gap-1">
-                    <p id="avg-price" class="text-3xl font-black text-slate-900">-</p>
-                    <span class="text-sm font-medium text-slate-400">만원</span>
+            <!-- 전체 거래 건수 -->
+            <div class="stat-card border-l-4 border-l-blue-500 flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">전체 거래 건수</p>
+                    <p id="total-count" class="text-3xl font-black text-slate-900">-</p>
+                    <div id="total-mom" class="mt-2 h-5"></div>
                 </div>
+                <span class="text-3xl p-2 bg-blue-50 rounded-lg">🏠</span>
             </div>
-            <div class="stat-card border-l-4 border-l-orange-500">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">최고 거래가격</p>
-                <div class="flex items-baseline gap-1">
-                    <p id="max-price" class="text-3xl font-black text-slate-900">-</p>
-                    <span class="text-sm font-medium text-slate-400">만원</span>
+            <!-- 평균 거래가격 -->
+            <div class="stat-card border-l-4 border-l-emerald-500 flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">평균 거래가격</p>
+                    <div class="flex items-baseline gap-1">
+                        <p id="avg-price" class="text-3xl font-black text-slate-900">-</p>
+                        <span class="text-sm font-medium text-slate-400">만원</span>
+                    </div>
+                    <div id="avg-mom" class="mt-2 h-5"></div>
                 </div>
+                <span class="text-3xl p-2 bg-emerald-50 rounded-lg">💰</span>
             </div>
-            <div class="stat-card border-l-4 border-l-rose-500">
-                <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">최저 거래가격</p>
-                <div class="flex items-baseline gap-1">
-                    <p id="min-price" class="text-3xl font-black text-slate-900">-</p>
-                    <span class="text-sm font-medium text-slate-400">만원</span>
+            <!-- 최고 거래가격 -->
+            <div class="stat-card border-l-4 border-l-orange-500 flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">최고 거래가격</p>
+                    <div class="flex items-baseline gap-1">
+                        <p id="max-price" class="text-3xl font-black text-slate-900">-</p>
+                        <span class="text-sm font-medium text-slate-400">만원</span>
+                    </div>
+                    <div id="max-mom" class="mt-2 h-5"></div>
                 </div>
+                <span class="text-3xl p-2 bg-orange-50 rounded-lg">📈</span>
+            </div>
+            <!-- 최저 거래가격 -->
+            <div class="stat-card border-l-4 border-l-rose-500 flex justify-between items-start">
+                <div>
+                    <p class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-1">최저 거래가격</p>
+                    <div class="flex items-baseline gap-1">
+                        <p id="min-price" class="text-3xl font-black text-slate-900">-</p>
+                        <span class="text-sm font-medium text-slate-400">만원</span>
+                    </div>
+                    <div id="min-mom" class="mt-2 h-5"></div>
+                </div>
+                <span class="text-3xl p-2 bg-rose-50 rounded-lg">📉</span>
             </div>
         </div>
 
         <!-- 메인 차트 섹션 -->
         <div class="bg-white rounded-3xl p-6 md:p-10 shadow-sm border border-slate-100 mb-10">
-            <div class="flex items-center justify-between mb-10">
-                <h2 class="text-2xl font-bold text-slate-900 flex items-center gap-3">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8 gap-4">
+                <h2 class="text-xl md:text-2xl font-bold text-slate-900 flex items-center gap-3">
                     <span class="w-3 h-8 bg-blue-600 rounded-full"></span>
                     월별 평균 거래가격 추이
                 </h2>
-                <div class="hidden sm:block text-right">
-                    <p id="chart-subtitle" class="text-sm text-slate-400">거래 일자 기준 월별 평균가 (단위: 만원)</p>
-                </div>
+                <p id="chart-subtitle" class="text-sm text-slate-400">거래 일자 기준 월별 평균가 (단위: 만원)</p>
             </div>
-            <div class="h-[400px] w-full">
+            <div class="h-[300px] md:h-[400px] w-full">
                 <canvas id="trendChart"></canvas>
             </div>
         </div>
 
         <!-- 상세 테이블 섹션 -->
-        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden text-sm">
             <div class="px-8 py-6 border-b border-slate-50 flex items-center justify-between bg-slate-50/50">
-                <h2 class="text-xl font-bold text-slate-900">최근 실거래 목록</h2>
-                <span id="data-count-badge" class="text-xs font-bold px-3 py-1 bg-slate-200 text-slate-600 rounded-full">업데이트 대기</span>
+                <h2 class="text-lg md:text-xl font-bold text-slate-900">최근 실거래 목록</h2>
+                <span id="data-count-badge" class="hidden sm:inline-block text-xs font-bold px-3 py-1 bg-slate-200 text-slate-600 rounded-full text-center">업데이트 대기</span>
             </div>
             <div class="overflow-x-auto table-container">
                 <table class="w-full text-left border-collapse min-w-[800px]">
                     <thead>
-                        <tr class="text-slate-400 text-xs font-bold uppercase tracking-widest border-b border-slate-100">
+                        <tr class="text-slate-400 text-xs font-bold uppercase tracking-widest border-b border-slate-200 bg-slate-50/30">
                             <th class="px-8 py-5">거래일자</th>
                             <th class="px-8 py-5 text-slate-900">아파트명</th>
                             <th class="px-8 py-5">법정동</th>
@@ -113,15 +131,10 @@
                             <th class="px-8 py-5 text-right text-slate-900 font-extrabold">거래금액(만원)</th>
                         </tr>
                     </thead>
-                    <tbody id="data-table-body" class="divide-y divide-slate-50 text-sm">
+                    <tbody id="data-table-body" class="divide-y divide-slate-100">
                         <tr>
                             <td colspan="7" class="px-8 py-24 text-center">
-                                <div class="flex flex-col items-center opacity-40">
-                                    <div class="animate-bounce mb-4">
-                                        <svg class="w-10 h-10 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                                    </div>
-                                    <p class="font-medium text-slate-600">데이터를 분석하고 있습니다...</p>
-                                </div>
+                                <p class="text-slate-400 font-medium italic">데이터를 분석하고 있습니다...</p>
                             </td>
                         </tr>
                     </tbody>
@@ -132,16 +145,14 @@
 
     <!-- 초기 로딩 화면 -->
     <div id="initial-loader" class="fixed inset-0 bg-white z-50 flex flex-col items-center justify-center transition-opacity duration-500">
-        <div class="relative w-24 h-24 mb-8">
+        <div class="relative w-20 h-20 mb-8">
             <div class="absolute inset-0 border-4 border-blue-50 rounded-full"></div>
             <div class="absolute inset-0 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
         </div>
-        <h2 class="text-xl font-bold text-slate-900 mb-2">실거래 데이터 분석 중</h2>
-        <p class="text-slate-400 animate-pulse">GID 945303917 시트 정보를 수집하고 있습니다...</p>
+        <p class="text-slate-400 animate-pulse font-medium">실거래 데이터를 수집하고 있습니다...</p>
     </div>
 
     <script>
-        // 제공해주신 특정 시트(GID 포함) CSV URL
         const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRSjs1b5A4Gpa4PtUU29bXQYvUEOEgbGEF8TqmuBY35Za7dsX-Td_nsavGZcxS-PDAmjmV_4EBJmck2/pub?gid=945303917&single=true&output=csv';
 
         let trendChart;
@@ -156,7 +167,6 @@
             const keys = Object.keys(row);
             const normalize = (s) => s.replace(/[\s\(\)㎡,]/g, '').toLowerCase();
             const targetNorm = normalize(targetName);
-            
             const match = keys.find(k => {
                 const kNorm = normalize(k);
                 return kNorm.includes(targetNorm) || targetNorm.includes(kNorm);
@@ -164,55 +174,37 @@
             return match ? row[match] : null;
         }
 
+        /**
+         * 변동률 렌더링 유틸리티
+         */
+        function renderMom(elementId, current, previous) {
+            const el = document.getElementById(elementId);
+            if (!previous || previous === 0) {
+                el.innerHTML = '<span class="text-slate-300 text-[11px]">비교 데이터 없음</span>';
+                return;
+            }
+            const diff = ((current - previous) / previous) * 100;
+            const absDiff = Math.abs(diff).toFixed(1);
+            
+            if (diff > 0) {
+                el.innerHTML = `<span class="mom-up">▲ ${absDiff}%</span> <span class="text-[11px] text-slate-400 ml-1 font-normal">전월 대비</span>`;
+            } else if (diff < 0) {
+                el.innerHTML = `<span class="mom-down">▼ ${absDiff}%</span> <span class="text-[11px] text-slate-400 ml-1 font-normal">전월 대비</span>`;
+            } else {
+                el.innerHTML = `<span class="text-slate-400 text-[11px]">변동 없음</span>`;
+            }
+        }
+
         function renderDashboard(data) {
             if (!data || data.length === 0) return;
 
             const prices = data.map(row => cleanNumber(getValByHeader(row, '거래금액'))).filter(p => p > 0);
-            
             if (prices.length === 0) {
-                showErrorMessage("'거래금액(만원)' 열을 찾을 수 없습니다. 시트의 첫 번째 줄 헤더를 확인해 주세요.", Object.keys(data[0]));
+                showErrorMessage("'거래금액' 컬럼을 찾을 수 없습니다.");
                 return;
             }
 
-            // 통계
-            const count = data.length;
-            const avg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
-            const max = Math.max(...prices);
-            const min = Math.min(...prices);
-
-            document.getElementById('total-count').innerText = count.toLocaleString() + ' 건';
-            document.getElementById('avg-price').innerText = avg.toLocaleString();
-            document.getElementById('max-price').innerText = max.toLocaleString();
-            document.getElementById('min-price').innerText = min.toLocaleString();
-            document.getElementById('data-count-badge').innerText = `총 ${count}개의 기록`;
-
-            // 테이블 (최신순)
-            const tableBody = document.getElementById('data-table-body');
-            tableBody.innerHTML = '';
-
-            const sortedData = [...data].sort((a, b) => {
-                const dateA = new Date(getValByHeader(a, '거래일자'));
-                const dateB = new Date(getValByHeader(b, '거래일자'));
-                return dateB - dateA;
-            });
-
-            sortedData.forEach(row => {
-                const price = cleanNumber(getValByHeader(row, '거래금액'));
-                const tr = document.createElement('tr');
-                tr.className = 'hover:bg-slate-50 transition-colors group';
-                tr.innerHTML = `
-                    <td class="px-8 py-5 text-slate-500 font-medium">${getValByHeader(row, '거래일자') || '-'}</td>
-                    <td class="px-8 py-5 font-bold text-slate-900 group-hover:text-blue-600 transition-colors">${getValByHeader(row, '아파트명') || '-'}</td>
-                    <td class="px-8 py-5 text-slate-500">${getValByHeader(row, '법정동') || '-'}</td>
-                    <td class="px-8 py-5 text-slate-400 font-mono text-xs">${getValByHeader(row, '전용면적') || '-'}㎡</td>
-                    <td class="px-8 py-5 text-slate-400">${getValByHeader(row, '층') || '-'}F</td>
-                    <td class="px-8 py-5 text-slate-400">${getValByHeader(row, '건축년도') || '-'}</td>
-                    <td class="px-8 py-5 text-right font-black text-blue-600 text-base">${price.toLocaleString()}</td>
-                `;
-                tableBody.appendChild(tr);
-            });
-
-            // 차트 (월별 평균)
+            // 1. 월별 통계 계산 (MoM용)
             const monthlyStats = {};
             data.forEach(row => {
                 const dateRaw = String(getValByHeader(row, '거래일자') || '');
@@ -220,23 +212,70 @@
                     const month = dateRaw.substring(0, 7); 
                     const price = cleanNumber(getValByHeader(row, '거래금액'));
                     if (price > 0) {
-                        if (!monthlyStats[month]) monthlyStats[month] = { sum: 0, count: 0 };
+                        if (!monthlyStats[month]) monthlyStats[month] = { sum: 0, count: 0, max: 0, min: Infinity };
                         monthlyStats[month].sum += price;
                         monthlyStats[month].count += 1;
+                        monthlyStats[month].max = Math.max(monthlyStats[month].max, price);
+                        monthlyStats[month].min = Math.min(monthlyStats[month].min, price);
                     }
                 }
             });
 
-            const labels = Object.keys(monthlyStats).sort();
-            const chartValues = labels.map(l => Math.round(monthlyStats[l].sum / monthlyStats[l].count));
+            const months = Object.keys(monthlyStats).sort();
+            const currentMonth = months[months.length - 1];
+            const prevMonth = months[months.length - 2];
 
+            const currentData = monthlyStats[currentMonth];
+            const prevData = prevMonth ? monthlyStats[prevMonth] : null;
+
+            // 2. 요약 정보 및 MoM 표시
+            const totalAvg = Math.round(prices.reduce((a, b) => a + b, 0) / prices.length);
+            const totalMax = Math.max(...prices);
+            const totalMin = Math.min(...prices).toLocaleString();
+
+            document.getElementById('total-count').innerText = data.length.toLocaleString() + ' 건';
+            document.getElementById('avg-price').innerText = totalAvg.toLocaleString();
+            document.getElementById('max-price').innerText = totalMax.toLocaleString();
+            document.getElementById('min-price').innerText = totalMin;
+            document.getElementById('data-count-badge').innerText = `총 ${data.length}개의 기록`;
+
+            // MoM 렌더링
+            renderMom('total-mom', currentData.count, prevData ? prevData.count : 0);
+            renderMom('avg-mom', currentData.sum / currentData.count, prevData ? prevData.sum / prevData.count : 0);
+            renderMom('max-mom', currentData.max, prevData ? prevData.max : 0);
+            renderMom('min-mom', currentData.min, prevData ? prevData.min : 0);
+
+            // 3. 테이블 렌더링
+            const tableBody = document.getElementById('data-table-body');
+            tableBody.innerHTML = '';
+            const sortedData = [...data].sort((a, b) => new Date(getValByHeader(b, '거래일자')) - new Date(getValByHeader(a, '거래일자')));
+
+            sortedData.forEach((row, index) => {
+                const price = cleanNumber(getValByHeader(row, '거래금액'));
+                const isHighPrice = price >= 50000;
+                const tr = document.createElement('tr');
+                tr.className = `transition-colors hover:bg-blue-50/50 ${index % 2 === 0 ? 'bg-white' : 'bg-slate-50/30'}`;
+                tr.innerHTML = `
+                    <td class="px-8 py-5 text-slate-500 font-medium">${getValByHeader(row, '거래일자') || '-'}</td>
+                    <td class="px-8 py-5 font-bold text-slate-900">${getValByHeader(row, '아파트명') || '-'}</td>
+                    <td class="px-8 py-5 text-slate-500">${getValByHeader(row, '법정동') || '-'}</td>
+                    <td class="px-8 py-5 text-slate-400 font-mono text-xs">${getValByHeader(row, '전용면적') || '-'}㎡</td>
+                    <td class="px-8 py-5 text-slate-400 text-center">${getValByHeader(row, '층') || '-'}F</td>
+                    <td class="px-8 py-5 text-slate-400 text-center">${getValByHeader(row, '건축년도') || '-'}</td>
+                    <td class="px-8 py-5 text-right text-base ${isHighPrice ? 'text-red-600 font-extrabold' : 'text-blue-600 font-black'}">${price.toLocaleString()}</td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            // 4. 차트 업데이트
+            const labels = months;
+            const chartValues = months.map(m => Math.round(monthlyStats[m].sum / monthlyStats[m].count));
             updateTrendChart(labels, chartValues);
         }
 
         function updateTrendChart(labels, values) {
             const ctx = document.getElementById('trendChart').getContext('2d');
             if (trendChart) trendChart.destroy();
-
             trendChart = new Chart(ctx, {
                 type: 'line',
                 data: {
@@ -246,10 +285,10 @@
                         data: values,
                         borderColor: '#2563eb',
                         backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                        borderWidth: 4,
+                        borderWidth: 3,
                         fill: true,
                         tension: 0.4,
-                        pointRadius: 4,
+                        pointRadius: 5,
                         pointBackgroundColor: '#fff',
                         pointBorderColor: '#2563eb'
                     }]
@@ -259,20 +298,20 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: {
-                        y: { ticks: { callback: (v) => v.toLocaleString() } }
+                        x: { grid: { display: false } },
+                        y: { 
+                            grid: { borderDash: [5, 5], color: '#f1f5f9' },
+                            ticks: { callback: (v) => v.toLocaleString() } 
+                        }
                     }
                 }
             });
         }
 
-        function showErrorMessage(msg, headers = []) {
+        function showErrorMessage(msg) {
             document.getElementById('initial-loader').style.display = 'none';
             document.getElementById('error-banner').classList.remove('hidden');
             document.getElementById('error-message').innerText = msg;
-            if (headers.length > 0) {
-                document.getElementById('debug-info').classList.remove('hidden');
-                document.getElementById('detected-headers').innerText = "감지된 헤더: " + headers.join(', ');
-            }
             const badge = document.getElementById('status-badge');
             badge.innerText = '연결 오류';
             badge.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-rose-50 text-rose-600 border border-rose-100';
@@ -280,26 +319,23 @@
 
         async function loadData() {
             try {
-                // 캐시 방지용 쿼리 추가
                 const response = await fetch(`${CSV_URL}&t=${Date.now()}`);
                 if (!response.ok) throw new Error('데이터 소스 응답 실패');
-                
                 const csvString = await response.text();
-                
                 Papa.parse(csvString, {
                     header: true,
                     skipEmptyLines: 'greedy',
                     complete: function(results) {
                         if (results.data && results.data.length > 0) {
                             renderDashboard(results.data);
-                            document.getElementById('initial-loader').style.opacity = '0';
-                            setTimeout(() => document.getElementById('initial-loader').style.display = 'none', 500);
-                            
+                            const loader = document.getElementById('initial-loader');
+                            loader.style.opacity = '0';
+                            setTimeout(() => loader.style.display = 'none', 500);
                             const badge = document.getElementById('status-badge');
                             badge.innerText = '실시간 연결됨';
-                            badge.className = 'px-4 py-2 rounded-full text-sm font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100';
+                            badge.className = 'px-4 py-2 rounded-full text-xs md:text-sm font-semibold bg-emerald-50 text-emerald-600 border border-emerald-100 animate-none';
                         } else {
-                            throw new Error('시트에 데이터가 없습니다.');
+                            throw new Error('데이터를 찾을 수 없습니다.');
                         }
                     }
                 });
